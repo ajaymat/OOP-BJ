@@ -45,14 +45,14 @@ module Hand
     cards.each do |card|
       puts "                  => #{(card)}"
     end
-    puts "                 => Total: #{hand_total}"
+    puts "                  => Total: #{hand_total}"
   end
 
   def hand_total
-    value = cards.map{ |card| card.value }
-
     hand_total = 0
-    value.each do |val|
+    card_value = cards.map{ |card| card.value }
+
+    card_value.each do |val|
       if val == 'Ace'
         hand_total +=11
       else
@@ -60,8 +60,8 @@ module Hand
       end
     end
 
-    value.select { |val| val == "Aces"}.count.times do
-      break if hand_total <= 21
+    card_value.select { |val| val == "Ace"}.count.times do
+      break if hand_total <= Blackjack::BLACKJACK_VALUE
       hand_total -= 10
     end
 
@@ -71,6 +71,10 @@ module Hand
   def add_card(new_card)
     cards << new_card
   end
+
+  def is_busted?
+    hand_total > Blackjack::BLACKJACK_VALUE
+  end 
 
 end
 
@@ -95,16 +99,152 @@ class Dealer
     @cards = []
   end
 
+  def show_flop
+    puts "Dealer's Hand ----"
+    puts "                  First card is hidden"
+    puts "                  Second card => #{(cards[1])}"
+  end
+
 end
 
-deck = Deck.new(2)
-player = Player.new('Ajay')
-dealer = Dealer.new
-player.add_card(deck.deal_card)
-dealer.add_card(deck.deal_card)
-player.add_card(deck.deal_card)
-dealer.add_card(deck.deal_card)
-player.add_card(deck.deal_card)
+class Blackjack
+  include Hand
+  attr_accessor :deck, :player, :dealer
 
-puts player.show_hand
-puts dealer.show_hand
+  BLACKJACK_VALUE = 21
+  DEALER_HIT_MIN = 17
+
+  def initialize
+    @deck = Deck.new(2)
+    @player = Player.new("Player1")
+    @dealer = Dealer.new
+  end
+
+  def set_player_name
+    puts "What's your name?"
+    player.name = gets.chomp
+  end
+
+  def start
+    set_player_name
+    start_game
+  end
+
+  def start_game
+    deal_cards
+    show_flop
+    player_turn
+    dealer_turn
+    end_game
+  end
+
+  def deal_cards
+    player.add_card(deck.deal_card)
+    dealer.add_card(deck.deal_card)
+    player.add_card(deck.deal_card)
+    dealer.add_card(deck.deal_card)
+  end
+
+  def show_flop
+    player.show_hand
+    dealer.show_flop
+  end
+
+  def blackjack_or_bust(player_or_dealer)
+    if player_or_dealer.hand_total == BLACKJACK_VALUE
+      if player_or_dealer.is_a?(Dealer)
+        puts "Sorry, dealer hit blackjack. #{player.name} loses"
+      else
+        puts "Congratulations, #{player.name} hit blackjack! You win!"
+      end  
+      play_again?
+    elsif player_or_dealer.is_busted?
+      if player_or_dealer.is_a?(Dealer)
+        puts "Congratulations, dealer busted. #{player.name} win!"
+      else
+        puts "Sorry, #{player.name} busted. You lose"
+      end
+      play_again?
+    end
+  end
+
+  def player_turn
+    blackjack_or_bust(player)
+    blackjack_or_bust(dealer)
+
+    while 10 > 9
+      puts "#{player.name}, what would you like to do? 1) hit 2) stay"
+      ans = gets.chomp
+
+      if !['1', '2'].include?(ans)
+        puts "Error: you must enter 1 or 2"
+        next
+      end
+
+     if ans == "2"
+        puts "You chose to stay at #{player.hand_total}."
+        break
+      else    
+        new_card = deck.deal_card
+        puts "Dealt #{new_card} to #{player.name}"
+        player.add_card(new_card)
+        puts "Your total is now #{player.hand_total}"
+        blackjack_or_bust(player)
+      end
+    
+    end
+  end
+
+  def dealer_turn
+    puts ''
+    puts "Dealer's turn"
+    dealer.show_hand
+    while dealer.hand_total < DEALER_HIT_MIN
+      new_card = deck.deal_card
+      dealer.add_card(new_card)
+      puts "Dealt #{new_card} to Dealer"
+      puts "Dealer's total is now #{dealer.hand_total}"
+      blackjack_or_bust(dealer)
+    end  
+    puts "Dealer stays at #{dealer.hand_total}."
+  end
+
+  def end_game
+    if player.hand_total > dealer.hand_total
+      puts "Congratuations #{player.name}, you win!"
+      play_again?
+    elsif player.hand_total < dealer.hand_total
+      puts "Sorry #{player.name}, you lose"
+      play_again?
+    else
+      puts "It's a tie!"
+      play_again?
+    end
+  end
+
+  def play_again?
+    puts ""
+    puts "#{player.name}, would you like to continue playing 1) Yes 2) No"
+    ans = gets.chomp
+
+    while !['1', '2'].include?(ans)
+      puts "Error: pls enter '1' or '2' "
+      puts ""
+      puts "#{player.name}, would you like to continue playing 1) Yes 2) No"
+      ans = gets.chomp
+    end
+
+    if ans == '1'
+      player.cards = []
+      dealer.cards = []
+      start_game
+    else
+      exit
+    end
+  
+  end
+
+end
+
+game = Blackjack.new
+game.start
