@@ -7,20 +7,21 @@ class Card
   end
 
   def to_s
-    "The #{value} of #{suit}"
+    "#{value} of #{suit}"
   end
 end
 
-class Deck(num_decks)
+class Deck
   attr_accessor :cards
 
   def initialize(num_decks)
     @cards = []
     ['Hearts', 'Spades', 'Diamonds', 'Clubs']. each do |suit|
-      ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Aces']. each do |value|
+      ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']. each do |value|
         @cards << Card.new(suit, value)
       end
     end
+    @cards = @cards * num_decks
     shuffle_cards
   end
 
@@ -37,41 +38,73 @@ class Deck(num_decks)
   end
 end
 
-class Hand
+module Hand
+
+  def show_hand
+    puts "#{name}'s Hand ----"
+    cards.each do |card|
+      puts "                  => #{(card)}"
+    end
+    puts "                 => Total: #{hand_total}"
+  end
+
+  def hand_total
+    value = cards.map{ |card| card.value }
+
+    hand_total = 0
+    value.each do |val|
+      if val == 'Ace'
+        hand_total +=11
+      else
+        hand_total += (val.to_i == 0 ? 10: val.to_i)
+      end
+    end
+
+    value.select { |val| val == "Aces"}.count.times do
+      break if hand_total <= 21
+      hand_total -= 10
+    end
+
+    hand_total
+  end
+
+  def add_card(new_card)
+    cards << new_card
+  end
+
 end
 
-#class Dealer
+class Player
+  include Hand
 
- # def initialize
-  #  @stake = 500
-  #end
+  attr_accessor :name, :cards
 
- # def dealer_hand
+  def initialize(n)
+    @name = n
+    @cards = []
+  end
+end
 
-  #end
+class Dealer
+  include Hand
 
-  #def hit_or_stay
-   # if hand_total(dealer_hand) < 17 || hand_total(dealer_hand) < hand_total(player_hand)
-      # do deal card
-    #end
-#end
-  
+  attr_accessor :name, :cards
 
-#
+  def initialize
+    @name = "Dealer"
+    @cards = []
+  end
 
-#class Blackjack # this is the game engine!
-# welcome message, set up Deck and get Player name
-# deal first two cards to Dealer and Player
-# compute and check total for blackjack
-# if not, display all hands and totals and ask player to hit or stay
-# if hit, c&c total for blackjack or bust
-  # if blackjack, do blackjack dance! (put all in end_result module?)
-  # if bust, do oops 
-# if stay, dealer turn to hit or stay
-# do end_game module
-# ask if player wants to play again?
-# Will total be a method within end_game or it is independent?
-# HOW DO I pass on total back? return, global variable, super-variable? use accessor????
+end
 
+deck = Deck.new(2)
+player = Player.new('Ajay')
+dealer = Dealer.new
+player.add_card(deck.deal_card)
+dealer.add_card(deck.deal_card)
+player.add_card(deck.deal_card)
+dealer.add_card(deck.deal_card)
+player.add_card(deck.deal_card)
 
-#
+puts player.show_hand
+puts dealer.show_hand
